@@ -1,7 +1,7 @@
 <?php
 //============================================================
-//EasyBotter Ver2.1.1
-//updated 2012/11/2
+//EasyBotter Ver2.1.2
+//updated 2013/01/08
 //============================================================
 class EasyBotter
 {    
@@ -20,8 +20,9 @@ class EasyBotter
         
     function __construct()
     {                        
-        $dir = getcwd();
-        $path = $dir."/PEAR";
+        //$dir = getcwd();
+        //$path = $dir."/PEAR";
+        $path = dirname(__FILE__) . "/PEAR";        
         set_include_path(get_include_path() . PATH_SEPARATOR . $path);
         $inc_path = get_include_path();
         chdir(dirname(__FILE__));
@@ -39,17 +40,10 @@ class EasyBotter
         $this->_logDataFile = "log.dat";
         $this->_log = json_decode(file_get_contents($this->_logDataFile),true);
         $this->_latestReply = $this->_log["latest_reply"];
-        $this->_latestReplyTimeline = $this->_log["latest_reply_tl"];        
-        
-        require_once 'HTTP/OAuth/Consumer.php';  
-        $this->consumer = new HTTP_OAuth_Consumer($this->_consumer_key, $this->_consumer_secret);    
-        $http_request = new HTTP_Request2();  
-        $http_request->setConfig('ssl_verify_peer', false);  
-        $consumer_request = new HTTP_OAuth_Consumer_Request;  
-        $consumer_request->accept($http_request);  
-        $this->consumer->accept($consumer_request);  
-        $this->consumer->setToken($this->_access_token);  
-        $this->consumer->setTokenSecret($this->_access_token_secret);                
+        $this->_latestReplyTimeline = $this->_log["latest_reply_tl"];                
+
+        require_once("HTTP/OAuth/Consumer.php");  
+		$this->OAuth_Consumer_build();
         $this->printHeader();
     }
        
@@ -490,13 +484,27 @@ class EasyBotter
 //============================================================
 //基本的なAPIを叩くための関数
 //============================================================
-    function _setData($url, $value = array()){                
+    function _setData($url, $value = array()){
+		$this->OAuth_Consumer_build();//ここでHTTP_OAuth_Consumerを作り直し
         return json_decode($this->consumer->sendRequest($url, $value, "POST")->getBody(), true);
     }    
 
-    function _getData($url){                
+    function _getData($url){
+		$this->OAuth_Consumer_build();//ここでHTTP_OAuth_Consumerを作り直し
         return json_decode($this->consumer->sendRequest($url, array(), "GET")->getBody(), true);
     }    
+
+	function OAuth_Consumer_build(){
+        $this->consumer = new HTTP_OAuth_Consumer($this->_consumer_key, $this->_consumer_secret);    
+        $http_request = new HTTP_Request2();  
+        $http_request->setConfig('ssl_verify_peer', false);  
+        $consumer_request = new HTTP_OAuth_Consumer_Request;  
+        $consumer_request->accept($http_request);  
+        $this->consumer->accept($consumer_request);  
+        $this->consumer->setToken($this->_access_token);  
+        $this->consumer->setTokenSecret($this->_access_token_secret);
+		return;                
+	}
 
     function setUpdate($value){        
         $url = "http://api.twitter.com/1.1/statuses/update.json";
